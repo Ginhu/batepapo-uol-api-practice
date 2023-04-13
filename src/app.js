@@ -79,5 +79,25 @@ app.post("/messages", (req, res) => {
 
 })
 
+app.get("/messages", (req, res) => {
+    const userName = req.headers.user
+    const { limit } = req.query
+
+    db.collection("messages").find({$or: [{from: userName}, {to: "Todos"}, {to: userName}]}).toArray()
+    .then((resp)=> {
+
+        if(limit<1 || (isNaN(limit))&&limit!=undefined) {
+            res.sendStatus(422)
+        }
+
+        if(limit) {
+            res.send(resp.slice(-limit))
+        }
+
+        res.send(resp)
+    })
+    .catch(err=>console.log(err.message))
+})
+
 const PORT = 5000
 app.listen(PORT, ()=>console.log(`Server ON na porta:${PORT}`))
