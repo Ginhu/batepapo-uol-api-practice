@@ -45,6 +45,39 @@ app.post("/participants", (req, res) => {
     .catch(err=>console.log(err.message))
 })
 
+app.get("/participants", (req, res) => {
+    db.collection("participants").find().toArray()
+    .then((resp)=>{
+        res.send(resp)
+    })
+    .catch()
+})
+
+app.post("/messages", (req, res) => {
+    const {to, text, type} = req.body
+    const userName = req.headers.user
+    const time = dayjs().format("HH:mm:ss")
+
+    db.collection("participants").findOne({name: userName})
+    .then((resp)=> {
+        console.log(resp)
+        if(!resp) {
+            return res.status(422).send(resp)
+        }
+
+        db.collection("messages").insertOne({
+            from: userName,
+            to,
+            text,
+            type,
+            time
+        })
+        .then(()=>res.sendStatus(201))
+        .catch(err => console.log(err.message))
+    })
+    .catch(err => console.log(err.message))
+
+})
 
 const PORT = 5000
 app.listen(PORT, ()=>console.log(`Server ON na porta:${PORT}`))
