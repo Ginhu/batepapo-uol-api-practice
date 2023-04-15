@@ -101,24 +101,24 @@ app.post("/messages", async (req, res) => {
     }
 })
 
-app.get("/messages", (req, res) => {
+app.get("/messages", async (req, res) => {
     const userName = req.headers.user
     const { limit } = req.query
 
-    db.collection("messages").find({$or: [{from: userName}, {to: "Todos"}, {to: userName}]}).toArray()
-    .then((resp)=> {
-
+    try {
+        const messagesFind = await db.collection("messages").find({$or: [{from: userName}, {to: "Todos"}, {to: userName}]}).toArray()
         if(limit<1 || (isNaN(limit))&&limit!=undefined) {
-            res.sendStatus(422)
+            return res.sendStatus(422)
         }
 
         if(limit) {
-            res.send(resp.slice(-limit))
+            return res.send(messagesFind.slice(-limit))
         }
 
-        res.send(resp)
-    })
-    .catch(err=>console.log(err.message))
+        res.send(messagesFind)
+    } catch (err) {
+        res.send(err.message)
+    }
 })
 
 app.post("/status", (req, res) => {
