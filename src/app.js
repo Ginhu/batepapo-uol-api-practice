@@ -49,7 +49,7 @@ app.post("/participants", async (req, res) => {
         res.sendStatus(201)
 
     } catch (err) {
-        console.log(err.message)
+        res.send(err.message)
     }
 
 })
@@ -59,35 +59,46 @@ app.get("/participants", async (req, res) => {
         const findParticipants = await db.collection("participants").find().toArray()
         res.send(findParticipants)
     } catch (err) {
-        console.log(err.message)
+        res.send(err.message)
     }
     
 })
 
-app.post("/messages", (req, res) => {
+app.post("/messages", async (req, res) => {
     const {to, text, type} = req.body
     const userName = req.headers.user
-    const time = dayjs().format("HH:mm:ss")
+    
+    const bodySchema = joi.object({
+        from: joi.string().required(),
+        to: joi.string().min(1).required(),
+        text: joi.string().min(1).required(),
+        type: joi.valid("message", "private_message").required()
+    })
 
-    db.collection("participants").findOne({name: userName})
-    .then((resp)=> {
-        console.log(resp)
-        if(!resp) {
-            return res.status(422).send(resp)
+    const validation = bodySchema.validate({...req.body, from: userName}, { abortEarly: false })    
+
+    try {
+        const participantFind = await db.collection("participants").findOne({name: userName})
+
+        if(!participantFind) return res.status(422).send("Usuário não encontrado! Faça login novamente.")
+
+        if(validation.error) {
+            const errors = validation.error.details.map((errors) => errors.message)
+            res.status(422).send(errors)
         }
 
-        db.collection("messages").insertOne({
+        const time = dayjs().format("HH:mm:ss")
+        await db.collection("messages").insertOne({
             from: userName,
             to,
             text,
             type,
             time
         })
-        .then(()=>res.sendStatus(201))
-        .catch(err => console.log(err.message))
-    })
-    .catch(err => console.log(err.message))
-
+        res.sendStatus(201)
+    } catch (err) {
+        res.send(err)
+    }
 })
 
 app.get("/messages", (req, res) => {
