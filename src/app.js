@@ -80,11 +80,11 @@ app.post("/messages", async (req, res) => {
     try {
         const participantFind = await db.collection("participants").findOne({name: userName})
 
-        if(!participantFind) return res.status(422).send("Usuário não encontrado! Faça login novamente.")
+        if(!participantFind) return res.sendStatus(422)
 
         if(validation.error) {
-            const errors = validation.error.details.map((errors) => errors.message)
-            res.status(422).send(errors)
+            /* const errors = validation.error.details.map((errors) => errors.message) */
+            res.sendStatus(422)
         }
 
         const time = dayjs().format("HH:mm:ss")
@@ -145,7 +145,7 @@ setInterval(async ()=>{
     const time = Date.now() - 10000
     const deletedParticipants = await db.collection("participants").find({lastStatus: {$lt: time}}).toArray()
     await db.collection("participants").deleteMany({lastStatus: {$lt: time}})
-    
+
     deletedParticipants.map( async (participant)=>{
         const time = dayjs().format("HH:mm:ss")
         await db.collection("messages").insertOne({
