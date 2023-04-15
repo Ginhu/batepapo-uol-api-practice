@@ -152,6 +152,7 @@ app.delete("/messages/:id", async (req, res) => {
         if(messageFind.from !== userName) return res.sendStatus(401)
 
         await db.collection("messages").deleteOne({_id: new ObjectId(id)})
+        res.sendStatus(200)
     } catch (err) {
         res.send(err.message)
     }
@@ -180,6 +181,7 @@ app.put("/messages/:id", async (req, res) => {
         if(messageFind.from !== userName) return res.sendStatus(401)
 
         await db.collection("messages").updateOne({_id: new ObjectId(id)}, {$set: req.body})
+        res.sendStatus(200)
     } catch (err) {
         res.send(err.message)
     }
