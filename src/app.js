@@ -54,12 +54,14 @@ app.post("/participants", async (req, res) => {
 
 })
 
-app.get("/participants", (req, res) => {
-    db.collection("participants").find().toArray()
-    .then((resp)=>{
-        res.send(resp)
-    })
-    .catch()
+app.get("/participants", async (req, res) => {
+    try {
+        const findParticipants = await db.collection("participants").find().toArray()
+        res.send(findParticipants)
+    } catch (err) {
+        console.log(err.message)
+    }
+    
 })
 
 app.post("/messages", (req, res) => {
