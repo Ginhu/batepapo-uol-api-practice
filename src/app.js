@@ -121,19 +121,24 @@ app.get("/messages", async (req, res) => {
     }
 })
 
-app.post("/status", (req, res) => {
+app.post("/status", async (req, res) => {
     const userName = req.headers.user
 
     if(!userName) res.sendStatus(404)
+    try {
+        const participantFind = await db.collection("participants").findOne({name: userName})
 
-    db.collection("participants").findOne({name: userName})
-    .then((resp)=>{
-        
-        if(!resp) res.sendStatus(404)
+        if (!participantFind) res.sendStatus(404)
 
+        await db.collection("participants").updateOne(
+            {name: userName},
+            {$set: {name: userName, lastStatus: Date.now()}}
+        )
+        res.sendStatus(200)
 
-    })
-    .catch(err=>console.log(err.message))
+    } catch (err) {
+        res.send(err.message)
+    }
 })
 
 const PORT = 5000
