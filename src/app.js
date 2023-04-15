@@ -3,7 +3,7 @@ import cors from "cors"
 import { MongoClient, ObjectId } from "mongodb"
 import dotenv from "dotenv"
 import dayjs from "dayjs"
-import joi from "joi"
+import joi, { valid } from "joi"
 
 const app = express()
 app.use(express.json())
@@ -155,6 +155,34 @@ app.delete("/messages/:ID_DA_MENSAEGEM", async (req, res) => {
         }
 
         await db.collection("messages").deleteOne({_id: new ObjectId(id)})
+    } catch (err) {
+        res.send(err.message)
+    }
+})
+
+app.put("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+    const {to, text, type} = req.body
+    const userName = req.headers.user
+    const id = req.params
+
+    const bodySchema = joi.object({
+        to: joi.string().min(1),
+        text: joi.string().min(1),
+        type: joi.valid("message", "private_message")
+    })
+
+    const validation = bodySchema.validate(req.body, {abortEarly: false })
+
+    try {
+        const userFind = await db.collection("participants").findOne({name: userName})
+        if(!userFind) return res.sendStatus(422)
+        if(validation.error) return res.sendStatus(422)
+
+        const messageFind = await db.collection("messages").findOne({_id: new ObjectId(id)})
+        if(!messageFind) return res.sendStatus(404)
+        if(messageFind.from !== userName) return res.sendStatus(401)
+
+        await db.collection("messages").updateOne({_id: new ObjectId(id)}, {$set: req.body})
     } catch (err) {
         res.send(err.message)
     }
