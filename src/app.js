@@ -83,7 +83,7 @@ app.post("/messages", async (req, res) => {
 
         if(validation.error) {
             /* const errors = validation.error.details.map((errors) => errors.message) */
-            res.sendStatus(422)
+            return res.sendStatus(422)
         }
 
         const time = dayjs().format("HH:mm:ss")
@@ -96,7 +96,7 @@ app.post("/messages", async (req, res) => {
         })
         res.sendStatus(201)
     } catch (err) {
-        res.send(err)
+        res.send(err.message)
     }
 })
 
