@@ -69,13 +69,12 @@ app.post("/messages", async (req, res) => {
     const userName = req.headers.user
     
     const bodySchema = joi.object({
-        from: joi.string().required(),
         to: joi.string().min(1).required(),
         text: joi.string().min(1).required(),
         type: joi.valid("message", "private_message").required()
     })
 
-    const validation = bodySchema.validate({...req.body, from: userName}, { abortEarly: false })    
+    const validation = bodySchema.validate(req.body, { abortEarly: false })    
 
     try {
         const participantFind = await db.collection("participants").findOne({name: userName})
