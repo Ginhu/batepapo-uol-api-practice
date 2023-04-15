@@ -3,46 +3,55 @@ import cors from "cors"
 import { MongoClient } from "mongodb"
 import dotenv from "dotenv"
 import dayjs from "dayjs"
+import joi from "joi"
 
 const app = express()
 app.use(express.json())
 app.use(cors())
 dotenv.config()
 
-let db
+
 const mongoClient = new MongoClient(process.env.DATABASE_URL)
-mongoClient.connect()
-.then(()=> db = mongoClient.db())
-.catch(err => console.log(err.message))
+
+try {
+    await mongoClient.connect()
+    console.log("MongoDB connected!")
+} catch (err) {
+    console.log(err.message)
+}
+const db = mongoClient.db()
 
 
-app.post("/participants", (req, res) => {
+app.post("/participants", async (req, res) => {
     const {name} = req.body
 
-    if(!name) {
-        return res.sendStatus(422)
+    const participantSchema = joi.object({name: joi.string().required()})
+    const validation = participantSchema.validate(req.body, { abortEarly: false })
+
+    if(validation.error) {
+        const errors = validation.error.details.map(detail => detail.message)
+        return res.status(422).send(errors)
+    } 
+
+    try {
+        const participantFind = await db.collection("participants").findOne({name: name})
+
+        if(participantFind) {
+            return res.status(409).send(participantFind)
+        }
+
+        const newParticipant = {name: name, lastStatus: Date.now()}
+        await db.collection("participants").insertOne(newParticipant)
+
+        const now = dayjs().format("HH:mm:ss")
+        const loginMessage = {from: name, to:"Todos", text:"entra na sala...", type:"status", time: now}
+        await db.collection("messages").insertOne(loginMessage)
+        res.sendStatus(201)
+
+    } catch (err) {
+        console.log(err.message)
     }
 
-    const newParticipant = {name: name, lastStatus: Date.now()}
-
-    db.collection("participants").findOne({name: name})
-    .then((data)=>{
-        if(data) {
-            return res.sendStatus(409)
-        } else {
-            const now = dayjs().format("HH:mm:ss")
-            const loginMessage = {from: name, to:"Todos", text:"entra na sala...", type:"status", time: now}
-            db.collection("participants").insertOne(newParticipant)
-            .then(()=> {
-                db.collection("messages").insertOne(loginMessage)
-                .then(res.sendStatus(201))
-                .catch(err => console.log(err.message))
-            })
-            .catch(err => console.log(err.message))
-            
-        }
-    })
-    .catch(err=>console.log(err.message))
 })
 
 app.get("/participants", (req, res) => {
@@ -95,6 +104,21 @@ app.get("/messages", (req, res) => {
         }
 
         res.send(resp)
+    })
+    .catch(err=>console.log(err.message))
+})
+
+app.post("/status", (req, res) => {
+    const userName = req.headers.user
+
+    if(!userName) res.sendStatus(404)
+
+    db.collection("participants").findOne({name: userName})
+    .then((resp)=>{
+        
+        if(!resp) res.sendStatus(404)
+
+
     })
     .catch(err=>console.log(err.message))
 })
